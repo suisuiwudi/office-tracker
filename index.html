@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>到岗追踪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2ee;--surface:#ffffff;--card:#fafaf8;
+  --border:#e8e4de;--border2:#d8d3cb;
+  --text:#1a1814;--muted:#9b9488;--dim:#ccc8c0;
+  --accent:#2d6a4f;--accent-light:#d8f3dc;--accent-mid:#74c69d;
+  --warn:#e07a1f;--warn-light:#fef3e2;--danger:#c0392b;
+}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;padding:0 0 80px}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 20px}
+
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 0;margin-bottom:28px;position:sticky;top:0;z-index:100}
+.topbar-inner{max-width:760px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:34px;height:34px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-0.02em}
+
+/* two verdict pills side by side */
+.verdict-row{display:flex;gap:8px;flex-wrap:wrap}
+.verdict-pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:100px;padding:7px 14px 7px 10px;transition:background .3s,border-color .3s}
+.verdict-pill.go{background:var(--accent-light);border-color:var(--accent-mid)}
+.verdict-pill.warn{background:var(--warn-light);border-color:#f0b060}
+.verdict-dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background .3s;flex-shrink:0}
+.verdict-pill.go .verdict-dot{background:var(--accent)}
+.verdict-pill.warn .verdict-dot{background:var(--warn)}
+.verdict-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.verdict-pill.go .verdict-label{color:var(--accent)}
+.verdict-pill.warn .verdict-label{color:var(--warn)}
+.verdict-text{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.verdict-pill.go .verdict-text{color:var(--accent)}
+.verdict-pill.warn .verdict-text{color:var(--warn)}
+
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.month-title{font-size:22px;font-weight:700;letter-spacing:-0.03em}
+.nav-btns{display:flex;gap:6px}
+.nav-btn{width:34px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s;color:var(--text)}
+.nav-btn:hover{background:var(--border)}
+
+.legend{display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.ld-marked{width:12px;height:12px;border-radius:50%;background:var(--accent);opacity:.7}
+
+.cal-grid{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:24px}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-weekday{padding:10px 0;text-align:center;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cal-weekday.we{color:var(--dim)}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;cursor:pointer;border-right:1px solid var(--border);border-bottom:1px solid var(--border);user-select:none;-webkit-tap-highlight-color:transparent;transition:background .12s}
+.cal-day:nth-child(7n){border-right:none}
+.cal-day.last-row{border-bottom:none}
+.cal-day.empty{cursor:default;background:var(--card)}
+.cal-day.we-col{background:#faf9f7}
+.cal-day:not(.empty):not(.future):not(.we-col):hover{background:#eeebe6}
+.cal-day.we-col:not(.empty):not(.future):hover{background:#f0ede8}
+.cal-day.future{cursor:not-allowed;opacity:.3}
+.cal-day.other-month{opacity:.45}
+.day-num{font-size:14px;font-weight:500;color:var(--text);position:relative;z-index:1;transition:color .15s}
+.cal-day.we-col .day-num{color:var(--muted)}
+.cal-day.today .day-num::after{content:'';position:absolute;inset:-5px;border:2px solid var(--accent);border-radius:50%;z-index:-1}
+.cal-day.marked{background:#e8f5ee}
+.cal-day.marked .day-num{color:var(--accent);font-weight:700}
+.cal-day.marked::before{content:'';position:absolute;inset:6px;background:var(--accent);border-radius:50%;opacity:.18;transition:opacity .15s}
+.cal-day.marked:hover::before{opacity:.28}
+.cal-day.we-col.marked{background:#dff0e8}
+.cal-day.used-week{border-top:3px solid var(--accent-mid)}
+
+/* stats: 2 big cards + 1 small */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.stat-card.highlight{border-color:var(--accent-mid);background:var(--accent-light)}
+.stat-val{font-size:26px;font-weight:800;letter-spacing:-0.04em;line-height:1;margin-bottom:4px}
+.stat-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px}
+.week-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.week-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px}
+.week-row.used-row{border-left:3px solid var(--accent-mid)}
+.week-row.unused-row{opacity:.5}
+.week-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;white-space:nowrap;text-align:center;min-width:42px}
+.week-badge.in{background:var(--accent-light);color:var(--accent)}
+.week-badge.out{background:#f0efed;color:var(--muted)}
+.week-label-text{font-size:13px;font-weight:500}
+.week-ago-text{font-size:11px;color:var(--muted)}
+.week-days-bar{display:flex;gap:4px}
+.day-pip{width:20px;height:20px;border-radius:5px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--muted)}
+.day-pip.on{background:var(--accent);color:#fff}
+.week-count{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--accent);min-width:24px;text-align:right}
+
+.algo-note{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:24px}
+.algo-note strong{color:var(--accent)}
+.danger-row{display:flex;justify-content:flex-end}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(192,57,43,.25);border-radius:8px;font-family:'Outfit',sans-serif;font-size:12px;padding:8px 16px;cursor:pointer;transition:background .2s,border-color .2s}
+.btn-danger:hover{background:rgba(192,57,43,.07);border-color:var(--danger)}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:#fff;font-size:13px;font-weight:500;padding:10px 22px;border-radius:100px;opacity:0;transition:transform .25s,opacity .25s;z-index:200;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+@media(max-width:500px){
+  .stat-val{font-size:20px}
+  .day-pip{width:16px;height:16px;font-size:8px}
+  .week-row{grid-template-columns:auto 1fr auto}
+  .week-days-bar{display:none}
+  .verdict-row{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🏢</div>
+      <span class="brand-name">到岗追踪</span>
+    </div>
+    <div class="verdict-row">
+      <div class="verdict-pill" id="pillThis">
+        <div class="verdict-dot"></div>
+        <div>
+          <div class="verdict-label">本周</div>
+          <div class="verdict-text" id="txtThis">—</div>
+        </div>
+      </div>
+      <div class="verdict-pill" id="pillNext">
+        <div class="verdict-dot"></div>
+        <div>
+          <div class="verdict-label">下周</div>
+          <div class="verdict-text" id="txtNext">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="month-nav">
+    <div class="month-title" id="monthTitle"></div>
+    <div class="nav-btns">
+      <button class="nav-btn" id="prevBtn">&#8249;</button>
+      <button class="nav-btn" id="todayBtn" title="回到今天">&#9679;</button>
+      <button class="nav-btn" id="nextBtn">&#8250;</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="ld-marked"></div>已到岗（点击切换）</div>
+    <div class="legend-item"><div class="week-badge in" style="font-size:9px;padding:1px 6px;min-width:auto">计入</div>到岗较多，入选前8周</div>
+    <div class="legend-item"><div class="week-badge out" style="font-size:9px;padding:1px 6px;min-width:auto;opacity:.6">不计入</div>到岗较少，已丢弃</div>
+  </div>
+
+  <div class="cal-grid">
+    <div class="cal-weekdays" id="calWeekdays"></div>
+    <div class="cal-days" id="calDays"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card" id="cardThis">
+      <div class="stat-val" id="statThisNeeded" style="color:var(--accent)">—</div>
+      <div class="stat-label">本周还需到岗</div>
+      <div class="stat-sub" id="statThisSub"></div>
+    </div>
+    <div class="stat-card" id="cardNext">
+      <div class="stat-val" id="statNextNeeded" style="color:var(--accent)">—</div>
+      <div class="stat-label">下周还需到岗</div>
+      <div class="stat-sub" id="statNextSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statTotal" style="color:var(--muted)">0</div>
+      <div class="stat-label">累计到岗天数</div>
+    </div>
+  </div>
+
+  <div class="section-title">本周计算窗口（12周）</div>
+  <div class="week-list" id="weekListThis"></div>
+
+  <div class="algo-note">
+    <strong>计算规则：</strong>取最近12周，按每周到岗天数从多到少排序，<strong>选前8周</strong>算平均值（需 &ge; 3天/周）。到岗天数最少的4周自动丢弃，不影响你的达标结果。<br><br>
+    <strong>为什么有「不计入」？</strong>12周里只取最好的8周，表现较差的4周会被排除——这对你是有利的，相当于允许你有4周表现不佳而不影响达标。<br><br>
+    <strong>本周达标：</strong>本周 + 往前11周 = 12周，选到岗最多的8周，算还需去几天使平均 &ge; 3。<br>
+    <strong>下周达标：</strong>下周 + 往前11周（含本周）= 12周，选到岗最多的8周，算下周至少去几天。<br>
+    绿色<strong>「计入」</strong>= 到岗天数较多，被选入计算；灰色<strong>「不计入」</strong>= 到岗天数较少，已被丢弃不影响均值。
+  </div>
+
+  <div class="danger-row">
+    <button class="btn-danger" onclick="clearAll()">&#128465; 清除所有数据</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'office_tracker_v3';
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
+function save(d) { localStorage.setItem(KEY, JSON.stringify(d)); }
+
+function toYMD(d) { return d.toISOString().slice(0, 10); }
+function fromYMD(s) { return new Date(s + 'T00:00:00'); }
+function getMon(d) {
+  const x = new Date(d), day = x.getDay();
+  x.setDate(x.getDate() - (day === 0 ? 6 : day - 1));
+  return toYMD(x);
+}
+function addDays(s, n) { const d = fromYMD(s); d.setDate(d.getDate() + n); return toYMD(d); }
+function weekLabel(mon) {
+  const s = fromYMD(mon), e = fromYMD(addDays(mon, 4));
+  const f = x => `${x.getMonth() + 1}/${x.getDate()}`;
+  return `${f(s)} \u2013 ${f(e)}`;
+}
+function weeksAgo(mon) {
+  const now = getMon(new Date()), diff = Math.round((fromYMD(now) - fromYMD(mon)) / (7 * 864e5));
+  if (diff === 0) return '\u672c\u5468';
+  if (diff === 1) return '\u4e0a\u5468';
+  if (diff === -1) return '\u4e0b\u5468';
+  return `${diff}\u5468\u524d`;
+}
+function daysOfWeek(mon) { return Array.from({ length: 5 }, (_, i) => addDays(mon, i)); }
+
+const today = toYMD(new Date());
+let viewYear = new Date().getFullYear(), viewMonth = new Date().getMonth();
+
+// ── 核心：12周选到岗天数最多的8周，返回 avg 和参与计算的周一集合
+function pick8(weeks12) {
+  const sorted = [...weeks12].sort((a, b) => b.days - a.days);
+  const picked = sorted.slice(0, 8);
+  const used = new Set(picked.map(w => w.mon));
+  const avg = picked.length ? picked.reduce((s, w) => s + w.days, 0) / picked.length : 0;
+  return { avg, usedMondays: used, picked };
+}
+
+// 给定12周池（其中 anchorMon 的天数可变），找最少还需去几天使平均>=3
+// alreadyDays: 该周已到天数
+function calcNeeded(weeks12, anchorMon, alreadyDays) {
+  for (let x = alreadyDays; x <= 5; x++) {
+    const trial = weeks12.map(w => w.mon === anchorMon ? { mon: w.mon, days: x } : w);
+    const { avg } = pick8(trial);
+    if (avg >= 3) return Math.max(0, x - alreadyDays);
+  }
+  return Math.max(0, 5 - alreadyDays); // 去满也不够
+}
+
+function computeResult(data) {
+  const todayMon = getMon(new Date());
+  const nextMon = addDays(todayMon, 7);
+
+  // 本周已到天数
+  const thisWeekDays = daysOfWeek(todayMon).filter(d => data[d]).length;
+
+  // ── 本周窗口：本周 + 往前11周 = 12周 ──
+  const thisPool = [];
+  for (let i = 0; i < 12; i++) {
+    const mon = addDays(todayMon, -i * 7);
+    const days = daysOfWeek(mon).filter(d => data[d]).length;
+    thisPool.push({ mon, days });
+  }
+  const thisNeeded = calcNeeded(thisPool, todayMon, thisWeekDays);
+  const { avg: thisAvg, usedMondays: thisUsed } = pick8(thisPool);
+
+  // ── 下周窗口：下周 + 往前11周（含本周）= 12周 ──
+  const nextPool = [];
+  nextPool.push({ mon: nextMon, days: 0 }); // 下周先放0天
+  for (let i = 0; i < 11; i++) {
+    const mon = addDays(todayMon, -i * 7); // i=0 是本周
+    const days = daysOfWeek(mon).filter(d => data[d]).length;
+    nextPool.push({ mon, days });
+  }
+  const nextNeeded = calcNeeded(nextPool, nextMon, 0);
+  const { avg: nextAvg, usedMondays: nextUsed } = pick8(nextPool);
+
+  const totalDays = Object.keys(data).length;
+  return {
+    thisPool, thisUsed, thisAvg, thisNeeded, thisWeekDays,
+    nextPool, nextUsed, nextAvg, nextNeeded,
+    totalDays, todayMon, nextMon,
+  };
+}
+
+function setPill(pillId, txtId, label, cls) {
+  const pill = document.getElementById(pillId);
+  const txt = document.getElementById(txtId);
+  pill.className = 'verdict-pill' + (cls ? ' ' + cls : '');
+  txt.textContent = label;
+}
+
+function renderVerdict(r) {
+  if (!r) { setPill('pillThis', 'txtThis', '—', ''); setPill('pillNext', 'txtNext', '—', ''); return; }
+
+  // 本周
+  if (r.thisNeeded === 0) setPill('pillThis', 'txtThis', '\u5df2\u8fbe\u6807 \u2713', 'go');
+  else setPill('pillThis', 'txtThis', `\u8fd8\u9700 ${r.thisNeeded} \u5929`, r.thisNeeded <= 2 ? 'warn' : '');
+
+  // 下周
+  if (r.nextNeeded === 0) setPill('pillNext', 'txtNext', '\u53ef\u5c45\u5bb6 \u2713', 'go');
+  else setPill('pillNext', 'txtNext', `\u81f3\u5c11\u53bb ${r.nextNeeded} \u5929`, r.nextNeeded <= 2 ? 'warn' : '');
+}
+
+function renderStats(r) {
+  if (!r) return;
+
+  const tn = document.getElementById('statThisNeeded');
+  const tSub = document.getElementById('statThisSub');
+  if (r.thisNeeded === 0) {
+    tn.textContent = '0 \u5929';
+    tn.style.color = 'var(--accent)';
+    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5df2\u8fbe\u6807`;
+  } else {
+    tn.textContent = `${r.thisNeeded} \u5929`;
+    tn.style.color = r.thisNeeded <= 2 ? 'var(--warn)' : 'var(--text)';
+    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5747\u5747 ${r.thisAvg.toFixed(1)}/\u5468`;
+  }
+
+  const nn = document.getElementById('statNextNeeded');
+  const nSub = document.getElementById('statNextSub');
+  if (r.nextNeeded === 0) {
+    nn.textContent = '0 \u5929';
+    nn.style.color = 'var(--accent)';
+    nSub.textContent = `\u5747\u5747 ${r.nextAvg.toFixed(1)}/\u5468\uff0c\u4e0d\u53bb\u4e5f\u8fbe\u6807`;
+  } else {
+    nn.textContent = `${r.nextNeeded} \u5929`;
+    nn.style.color = r.nextNeeded <= 2 ? 'var(--warn)' : 'var(--text)';
+    nSub.textContent = `\u5347\u81f3\u5747\u5747 ${r.nextAvg.toFixed(1)}/\u5468`;
+  }
+
+  document.getElementById('statTotal').textContent = r.totalDays || '0';
+}
+
+function renderWeekList(data, r) {
+  const DPIPS = ['\u4e00', '\u4e8c', '\u4e09', '\u56db', '\u4e94'];
+  const list = document.getElementById('weekListThis');
+  if (!r || r.thisPool.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">\u70b9\u51fb\u65e5\u5386\u4e0a\u7684\u5de5\u4f5c\u65e5\u5f00\u59cb\u8bb0\u5f55</div>';
+    return;
+  }
+  list.innerHTML = r.thisPool.map(w => {
+    const used = r.thisUsed.has(w.mon);
+    const dd = daysOfWeek(w.mon);
+    const pips = DPIPS.map((lbl, i) => `<div class="day-pip${data[dd[i]] ? ' on' : ''}">${lbl}</div>`).join('');
+    const reason = used ? '' : '<span style="font-size:10px;color:var(--muted);margin-left:4px">（天数较少，未入选前8）</span>';
+    return `<div class="week-row${used ? ' used-row' : ' unused-row'}">
+      <div class="week-badge ${used ? 'in' : 'out'}">${used ? '\u8ba1\u5165' : '\u4e0d\u8ba1\u5165'}</div>
+      <div><div class="week-label-text">${weekLabel(w.mon)}${reason}</div><div class="week-ago-text">${weeksAgo(w.mon)}</div></div>
+      <div class="week-days-bar">${pips}</div>
+      <div class="week-count">${w.days}\u5929</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCalendar(data, usedMondays) {
+  const WD = ['\u4e00', '\u4e8c', '\u4e09', '\u56db', '\u4e94', '\u516d', '\u65e5'];
+  document.getElementById('calWeekdays').innerHTML = WD.map((d, i) => `<div class="cal-weekday${i >= 5 ? ' we' : ''}">${d}</div>`).join('');
+
+  const first = new Date(viewYear, viewMonth, 1);
+  let sdow = first.getDay() - 1; if (sdow < 0) sdow = 6;
+  const dim = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevDim = new Date(viewYear, viewMonth, 0).getDate();
+  const total = Math.ceil((sdow + dim) / 7) * 7;
+  const lastRowStart = total - 7;
+
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    let d, isOther = false;
+    if (i < sdow) { d = toYMD(new Date(viewYear, viewMonth - 1, prevDim - sdow + i + 1)); isOther = true; }
+    else if (i >= sdow + dim) { d = toYMD(new Date(viewYear, viewMonth + 1, i - sdow - dim + 1)); isOther = true; }
+    else { d = toYMD(new Date(viewYear, viewMonth, i - sdow + 1)); }
+
+    const isFuture = d > today;
+    const isToday = d === today;
+    const dow = i % 7;
+    const isWE = dow >= 5;
+    const mon = getMon(fromYMD(d));
+    const isUsed = usedMondays && usedMondays.has(mon) && !isOther;
+    const isMarked = !isFuture && data[d];
+    const isLastRow = i >= lastRowStart;
+
+    const cls = ['cal-day', isOther ? 'other-month' : '', isFuture ? 'future' : '', isToday ? 'today' : '',
+      isWE ? 'we-col' : '', isMarked ? 'marked' : '', isUsed ? 'used-week' : '', isLastRow ? 'last-row' : '']
+      .filter(Boolean).join(' ');
+    html += `<div class="${cls}" onclick="toggleDay('${d}')"><span class="day-num">${fromYMD(d).getDate()}</span></div>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+
+  const MONTHS = ['\u4e00\u6708', '\u4e8c\u6708', '\u4e09\u6708', '\u56db\u6708', '\u4e94\u6708', '\u516d\u6708',
+    '\u4e03\u6708', '\u516b\u6708', '\u4e5d\u6708', '\u5341\u6708', '\u5341\u4e00\u6708', '\u5341\u4e8c\u6708'];
+  document.getElementById('monthTitle').textContent = `${viewYear}\u5e74 ${MONTHS[viewMonth]}`;
+}
+
+function render() {
+  const data = load();
+  const r = computeResult(data);
+  renderCalendar(data, r.thisUsed);
+  renderVerdict(r);
+  renderStats(r);
+  renderWeekList(data, r);
+}
+
+function toggleDay(d) {
+  if (d > today) return;
+  const dow = fromYMD(d).getDay();
+  if (dow === 0 || dow === 6) { showToast('\u5468\u672b\u4e0d\u8ba1\u5165\u5230\u5c97\u8bb0\u5f55'); return; }
+  const data = load();
+  if (data[d]) delete data[d]; else data[d] = 1;
+  save(data);
+  showToast(data[d] ? '\u2713 \u5df2\u6807\u8bb0\u5230\u5c97' : '\u5df2\u53d6\u6d88\u5230\u5c97');
+  render();
+}
+
+function clearAll() {
+  if (!confirm('\u786e\u5b9a\u8981\u6e05\u9664\u6240\u6709\u8bb0\u5f55\u5417\uff1f')) return;
+  localStorage.removeItem(KEY); showToast('\u5df2\u6e05\u9664'); render();
+}
+
+let tt;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+document.getElementById('prevBtn').onclick = () => { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); };
+document.getElementById('nextBtn').onclick = () => { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); };
+document.getElementById('todayBtn').onclick = () => { viewYear = new Date().getFullYear(); viewMonth = new Date().getMonth(); render(); };
+
+render();
+</script>
+</body>
+</html>
