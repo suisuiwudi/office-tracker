@@ -203,7 +203,12 @@ const KEY = 'office_tracker_v3';
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
 function save(d) { localStorage.setItem(KEY, JSON.stringify(d)); }
 
-function toYMD(d) { return d.toISOString().slice(0, 10); }
+function toYMD(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function fromYMD(s) { return new Date(s + 'T00:00:00'); }
 function getMon(d) {
   const x = new Date(d), day = x.getDay();
