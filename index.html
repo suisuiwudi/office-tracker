@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>到岗追踪</title>
+<title>打卡追踪</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -120,7 +120,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="topbar-inner">
     <div class="brand">
       <div class="brand-icon">🏢</div>
-      <span class="brand-name">到岗追踪</span>
+      <span class="brand-name">打卡追踪</span>
     </div>
     <div class="verdict-row">
       <div class="verdict-pill" id="pillThis">
@@ -153,9 +153,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="ld-marked"></div>已到岗（点击切换）</div>
-    <div class="legend-item"><div class="week-badge in" style="font-size:9px;padding:1px 6px;min-width:auto">计入</div>到岗较多，入选前8周</div>
-    <div class="legend-item"><div class="week-badge out" style="font-size:9px;padding:1px 6px;min-width:auto;opacity:.6">不计入</div>到岗较少，已丢弃</div>
+    <div class="legend-item"><div class="ld-marked"></div>已打卡（点击切换）</div>
+    <div class="legend-item"><div class="week-badge in" style="font-size:9px;padding:1px 6px;min-width:auto">计入</div>打卡较多，入选前8周</div>
+    <div class="legend-item"><div class="week-badge out" style="font-size:9px;padding:1px 6px;min-width:auto;opacity:.6">不计入</div>打卡较少，已丢弃</div>
   </div>
 
   <div class="cal-grid">
@@ -166,17 +166,17 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="stats-row">
     <div class="stat-card" id="cardThis">
       <div class="stat-val" id="statThisNeeded" style="color:var(--accent)">—</div>
-      <div class="stat-label">本周还需到岗</div>
+      <div class="stat-label">本周还需打卡</div>
       <div class="stat-sub" id="statThisSub"></div>
     </div>
     <div class="stat-card" id="cardNext">
       <div class="stat-val" id="statNextNeeded" style="color:var(--accent)">—</div>
-      <div class="stat-label">下周还需到岗</div>
+      <div class="stat-label">下周还需打卡</div>
       <div class="stat-sub" id="statNextSub"></div>
     </div>
     <div class="stat-card">
       <div class="stat-val" id="statTotal" style="color:var(--muted)">0</div>
-      <div class="stat-label">累计到岗天数</div>
+      <div class="stat-label">累计打卡天数</div>
     </div>
   </div>
 
@@ -184,11 +184,11 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   <div class="week-list" id="weekListThis"></div>
 
   <div class="algo-note">
-    <strong>计算规则：</strong>取最近12周，按每周到岗天数从多到少排序，<strong>选前8周</strong>算平均值（需 &ge; 3天/周）。到岗天数最少的4周自动丢弃，不影响你的达标结果。<br><br>
+    <strong>计算规则：</strong>取最近12周，按每周打卡天数从多到少排序，<strong>选前8周</strong>算平均值（需 &ge; 3天/周）。打卡天数最少的4周自动丢弃，不影响你的达标结果。<br><br>
     <strong>为什么有「不计入」？</strong>12周里只取最好的8周，表现较差的4周会被排除——这对你是有利的，相当于允许你有4周表现不佳而不影响达标。<br><br>
-    <strong>本周达标：</strong>本周 + 往前11周 = 12周，选到岗最多的8周，算还需去几天使平均 &ge; 3。<br>
-    <strong>下周达标：</strong>下周 + 往前11周（含本周）= 12周，选到岗最多的8周，算下周至少去几天。<br>
-    绿色<strong>「计入」</strong>= 到岗天数较多，被选入计算；灰色<strong>「不计入」</strong>= 到岗天数较少，已被丢弃不影响均值。
+    <strong>本周达标：</strong>本周 + 往前11周 = 12周，选打卡最多的8周，算还需去几天使平均 &ge; 3。<br>
+    <strong>下周达标：</strong>下周 + 往前11周（含本周）= 12周，选打卡最多的8周，算下周至少去几天。<br>
+    绿色<strong>「计入」</strong>= 打卡天数较多，被选入计算；灰色<strong>「不计入」</strong>= 打卡天数较少，已被丢弃不影响均值。
   </div>
 
   <div class="danger-row">
@@ -233,7 +233,7 @@ function daysOfWeek(mon) { return Array.from({ length: 5 }, (_, i) => addDays(mo
 const today = toYMD(new Date());
 let viewYear = new Date().getFullYear(), viewMonth = new Date().getMonth();
 
-// ── 核心：12周选到岗天数最多的8周，返回 avg 和参与计算的周一集合
+// ── 核心：12周选打卡天数最多的8周，返回 avg 和参与计算的周一集合
 function pick8(weeks12) {
   const sorted = [...weeks12].sort((a, b) => b.days - a.days);
   const picked = sorted.slice(0, 8);
@@ -316,11 +316,11 @@ function renderStats(r) {
   if (r.thisNeeded === 0) {
     tn.textContent = '0 \u5929';
     tn.style.color = 'var(--accent)';
-    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5df2\u8fbe\u6807`;
+    tSub.textContent = `\u5df2\u6253\u5361 ${r.thisWeekDays} \u5929\uff0c\u5df2\u8fbe\u6807`;
   } else {
     tn.textContent = `${r.thisNeeded} \u5929`;
     tn.style.color = r.thisNeeded <= 2 ? 'var(--warn)' : 'var(--text)';
-    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5747 ${r.thisAvg.toFixed(1)}/\u5468`;
+    tSub.textContent = `\u5df2\u6253\u5361 ${r.thisWeekDays} \u5929\uff0c\u5747 ${r.thisAvg.toFixed(1)}/\u5468`;
   }
 
   const nn = document.getElementById('statNextNeeded');
@@ -410,11 +410,11 @@ function render() {
 function toggleDay(d) {
   if (d > today) return;
   const dow = fromYMD(d).getDay();
-  if (dow === 0 || dow === 6) { showToast('\u5468\u672b\u4e0d\u8ba1\u5165\u5230\u5c97\u8bb0\u5f55'); return; }
+  if (dow === 0 || dow === 6) { showToast('\u5468\u672b\u4e0d\u8ba1\u5165\u6253\u5361\u8bb0\u5f55'); return; }
   const data = load();
   if (data[d]) delete data[d]; else data[d] = 1;
   save(data);
-  showToast(data[d] ? '\u2713 \u5df2\u6807\u8bb0\u5230\u5c97' : '\u5df2\u53d6\u6d88\u5230\u5c97');
+  showToast(data[d] ? '\u2713 \u5df2\u6807\u8bb0\u6253\u5361' : '\u5df2\u53d6\u6d88\u6253\u5361');
   render();
 }
 
