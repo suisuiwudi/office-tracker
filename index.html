@@ -320,7 +320,7 @@ function renderStats(r) {
   } else {
     tn.textContent = `${r.thisNeeded} \u5929`;
     tn.style.color = r.thisNeeded <= 2 ? 'var(--warn)' : 'var(--text)';
-    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5747\u5747 ${r.thisAvg.toFixed(1)}/\u5468`;
+    tSub.textContent = `\u5df2\u5230\u5c97 ${r.thisWeekDays} \u5929\uff0c\u5747 ${r.thisAvg.toFixed(1)}/\u5468`;
   }
 
   const nn = document.getElementById('statNextNeeded');
@@ -328,11 +328,11 @@ function renderStats(r) {
   if (r.nextNeeded === 0) {
     nn.textContent = '0 \u5929';
     nn.style.color = 'var(--accent)';
-    nSub.textContent = `\u5747\u5747 ${r.nextAvg.toFixed(1)}/\u5468\uff0c\u4e0d\u53bb\u4e5f\u8fbe\u6807`;
+    nSub.textContent = `\u5747 ${r.nextAvg.toFixed(1)}/\u5468\uff0c\u4e0d\u53bb\u4e5f\u8fbe\u6807`;
   } else {
     nn.textContent = `${r.nextNeeded} \u5929`;
     nn.style.color = r.nextNeeded <= 2 ? 'var(--warn)' : 'var(--text)';
-    nSub.textContent = `\u5347\u81f3\u5747\u5747 ${r.nextAvg.toFixed(1)}/\u5468`;
+    nSub.textContent = `\u5347\u81f3\u5747 ${r.nextAvg.toFixed(1)}/\u5468`;
   }
 
   document.getElementById('statTotal').textContent = r.totalDays || '0';
